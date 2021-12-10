@@ -5,12 +5,16 @@ type LibrarySideBarProps = {
   folders: LibraryFolder[]
   activeImageId?: string | null,
   onSelectImage?: (imageId: string) => void
+  onClickAddFolder?: () => void
+  onAddImageToFolder?: (folderId: string, file: File) => void;
 }
 
 const LibrarySideBar = ({
   folders,
   activeImageId,
-  onSelectImage
+  onSelectImage,
+  onClickAddFolder,
+  onAddImageToFolder
 }: LibrarySideBarProps) => {
   return (
     <nav>
@@ -28,9 +32,20 @@ const LibrarySideBar = ({
             ))
           }
           </ul>
+          <input type="file"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onAddImageToFolder?.(folder.id, e.target.files[0])
+              } else {
+                console.error("No file was picked")
+              }
+            }}
+            accept=".png, .jpg, .jpeg" />
+          <hr />
       </div>
       ))
     }
+    <button onClick={onClickAddFolder}>Add a folder</button>
     </nav>
   )
 }

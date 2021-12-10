@@ -6,13 +6,14 @@ import { API_KEY, API_URL, BASE64_IMAGE_HEADER } from './Constants';
 import useImageLibrary from './hooks/useImageLibrary';
 import LibrarySideBar from './components/LibrarySideBar';
 import ImagePreview from './components/ImagePreview';
+import NewFolderModal from './components/NewFolderModal';
 
 function App() {
-  const [result, setResult] = useState<string | null>(null)
+  const { folders, images, addImage, addResultToImage, addFolder } = useImageLibrary()
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
-  const { folders, images, addImage, addResultToImage } = useImageLibrary()
-  
-  let uploadImageToServer = (file: File) => {
+  const [newFolderModalIsOpen, setNewFolderModalIsOpen] = React.useState(false);
+
+  let uploadImageToServer = (folderId: string, file: File) => {
     loadImage(
       file,
       {
@@ -24,7 +25,7 @@ function App() {
         let image = imageData.image as HTMLCanvasElement
         
         let imageBase64 = image.toDataURL("image/png")
-        const { id } = addImage(file.name, imageBase64)
+        const { id } = addImage(folderId, file.name, imageBase64)
         
         let imageBase64Data = imageBase64.replace(BASE64_IMAGE_HEADER, "")
         let data = {
@@ -48,20 +49,11 @@ function App() {
         const base64Result = BASE64_IMAGE_HEADER + result.result_b64
         addResultToImage(id, base64Result)
         setActiveImageId(id)
-        setResult(base64Result)
       })
       
       .catch(error => {
         console.error(error)
       })
-    }
-    
-    let onImageAdd = (e: ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-        uploadImageToServer(e.target.files[0])
-      } else {
-        console.error("No file was picked")
-      }
     }
     
     const activeImage = useMemo(() => {
@@ -70,13 +62,19 @@ function App() {
 
     return (
       <div className="App">
+        <NewFolderModal
+          isOpen={newFolderModalIsOpen}
+          onRequestClose={() => setNewFolderModalIsOpen(false)}
+          onSubmit={addFolder}
+        />
         <div>
           <LibrarySideBar
             folders={folders}
             activeImageId={activeImageId}
             onSelectImage={setActiveImageId}
+            onClickAddFolder={() => setNewFolderModalIsOpen(true)}
+            onAddImageToFolder={uploadImageToServer}
           />
-          <AddButton onImageAdd={onImageAdd} />
         </div>
         {
           activeImage ? <ImagePreview {...activeImage}/> : <span></span>
