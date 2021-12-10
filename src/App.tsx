@@ -1,11 +1,16 @@
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useMemo, useState } from 'react';
 import './App.css';
 import AddButton from './components/AddButton';
 import loadImage, { LoadImageResult } from 'blueimp-load-image';
 import { API_KEY, API_URL, BASE64_IMAGE_HEADER } from './Constants';
+import useImageLibrary from './hooks/useImageLibrary';
+import LibrarySideBar from './components/LibrarySideBar';
+import ImagePreview from './components/ImagePreview';
 
 function App() {
   const [result, setResult] = useState<string | null>(null)
+  const [activeImageId, setActiveImageId] = useState<string | null>(null)
+  const { folders, images, addImage, addResultToImage } = useImageLibrary()
   
   let uploadImageToServer = (file: File) => {
     loadImage(
@@ -19,6 +24,8 @@ function App() {
         let image = imageData.image as HTMLCanvasElement
         
         let imageBase64 = image.toDataURL("image/png")
+        const { id } = addImage(file.name, imageBase64)
+        
         let imageBase64Data = imageBase64.replace(BASE64_IMAGE_HEADER, "")
         let data = {
           image_file_b64: imageBase64Data,
@@ -39,6 +46,8 @@ function App() {
 
         const result = await response.json();
         const base64Result = BASE64_IMAGE_HEADER + result.result_b64
+        addResultToImage(id, base64Result)
+        setActiveImageId(id)
         setResult(base64Result)
       })
       
@@ -55,12 +64,23 @@ function App() {
       }
     }
     
+    const activeImage = useMemo(() => {
+      return images.find((i) => i.id === activeImageId)
+    }, [activeImageId, images]);
+
     return (
       <div className="App">
-        <header className="App-header">
-          {!result && <AddButton onImageAdd={onImageAdd}/>}
-          {result && <img src={result} width={300} alt="result from the API"/>}
-        </header>
+        <div>
+          <LibrarySideBar
+            folders={folders}
+            activeImageId={activeImageId}
+            onSelectImage={setActiveImageId}
+          />
+          <AddButton onImageAdd={onImageAdd} />
+        </div>
+        {
+          activeImage ? <ImagePreview {...activeImage}/> : <span></span>
+        }
       </div>
       );
     }
