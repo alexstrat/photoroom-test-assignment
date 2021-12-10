@@ -1,8 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import { useLocalStorage } from '@rehooks/local-storage';
-
 import { LibraryFolder, LibraryImage } from '../types';
 
 type UseImageLibraryHook = {
@@ -37,8 +35,8 @@ const UNTITLED_FOLDER_ID = 'untitled-folder';
  * @returns 
  */
 export default function useImageLibrary(): UseImageLibraryHook {
-  const [images, setImages] = useLocalStorage<(LibraryImage & { folderId: string })[]>('images', [])
-  const [foldersState, setFoldersState] = useLocalStorage<Omit<LibraryFolder, 'images'>[]>('folders', [{
+  const [images, setImages] = useState<(LibraryImage & { folderId: string })[]>([])
+  const [foldersState, setFoldersState] = useState<Omit<LibraryFolder, 'images'>[]>([{
     id: UNTITLED_FOLDER_ID,
     name: 'Untitled Folder',
   }])
@@ -57,40 +55,44 @@ export default function useImageLibrary(): UseImageLibraryHook {
       base64Original,
       folderId,
     }
-    setImages([...images, image])
+    setImages((images) => [...images, image])
     return image
-  }, [images, setImages])
+  }, [setImages])
 
   const addResultToImage = React.useCallback((imageId: string, base64Result: string) => {
-    const foundIndex = images.findIndex((image) => image.id === imageId)
-    if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
-    const newImage = {
-      ...images[foundIndex],
-      base64Result
-    }
-    images[foundIndex] = newImage
-    setImages([...images])
-  }, [images, setImages])
+    setImages((images_) => {
+      const foundIndex = images_.findIndex((image) => image.id === imageId)
+      if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
+      const newImage = {
+        ...images_[foundIndex],
+        base64Result
+      }
+      images_[foundIndex] = newImage
+      return [...images_]
+    })
+  }, [setImages])
 
   const addFolder = React.useCallback((name: string) => {
     const folder = {
       id: uuid(),
       name,
     }
-    setFoldersState([...folders, folder])
+    setFoldersState((folders) => [...folders, folder])
     return folder
-  }, [folders, setFoldersState])
+  }, [setFoldersState])
 
   const moveImageToFolder = React.useCallback((imageId: string, folderId: string) => {
-    const foundIndex = images.findIndex((image) => image.id === imageId)
-    if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
-    const newImage = {
-      ...images[foundIndex],
-      folderId,
-    }
-    images[foundIndex] = newImage
-    setImages([...images])
-  }, [images, setImages])
+    setImages((images_) => {
+      const foundIndex = images_.findIndex((image) => image.id === imageId)
+      if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
+      const newImage = {
+        ...images_[foundIndex],
+        folderId,
+      }
+      images_[foundIndex] = newImage
+      return [...images_]
+    })
+  }, [setImages])
   
   return {
     folders,
