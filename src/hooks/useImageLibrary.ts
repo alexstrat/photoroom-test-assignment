@@ -1,7 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { v4 as uuid } from 'uuid';
-import { useLocalStorage } from 'react-use';
+import { useStorageReducer, useStorageState } from 'react-storage-hooks';
+
 
 import { LibraryFolder, LibraryImage } from '../types';
 
@@ -31,14 +32,47 @@ type UseImageLibraryHook = {
 
 const UNTITLED_FOLDER_ID = 'untitled-folder';
 
+
+type ImageAction =
+  | { type: 'add-image', image: LibraryImage & { folderId: string } }
+  | { type: 'add-result-to-image', imageId: string, base64Result: string }
+  | { type: 'move-image', imageId: string, folderId: string };
+
+type ImagesState = (LibraryImage & { folderId: string })[]
+const imagesReducer = (images: ImagesState, action: ImageAction): ImagesState => {
+  switch (action.type) {
+    case 'add-image': 
+      return [...images, action.image];
+    case 'add-result-to-image': {
+      const foundIndex = images.findIndex((image) => image.id === action.imageId)
+      if (foundIndex === -1) throw new Error(`No image with id ${action.imageId}`)
+      const newImage = {
+        ...images[foundIndex],
+        base64Result: action.base64Result
+      }
+      images[foundIndex] = newImage
+      return [...images]
+    }
+    case 'move-image': {
+      const foundIndex = images.findIndex((image) => image.id === action.imageId)
+      if (foundIndex === -1) throw new Error(`No image with id ${action.imageId}`)
+      const newImage = {
+        ...images[foundIndex],
+        folderId: action.folderId
+      }
+      images[foundIndex] = newImage
+      return [...images]
+    }
+  }
+}
 /**
  * A hook to manage the library of images: its folders, its images etc.
  * 
  * @returns 
  */
 export default function useImageLibrary(): UseImageLibraryHook {
-  const [images, setImages] = useLocalStorage<(LibraryImage & { folderId: string })[]>('images', [])
-  const [foldersState, setFoldersState] = useLocalStorage<Omit<LibraryFolder, 'images'>[]>('folders', [{
+  const [images, dispatch] = useStorageReducer(window.localStorage, 'images', imagesReducer, [])
+  const [foldersState, setFoldersState] = useStorageState<Omit<LibraryFolder, 'images'>[]>(window.localStorage, 'folders', [{
     id: UNTITLED_FOLDER_ID,
     name: 'Untitled Folder',
   }])
@@ -59,20 +93,12 @@ export default function useImageLibrary(): UseImageLibraryHook {
       base64Result,
       folderId,
     }
-    setImages((images) => [...images || [], image])
+    dispatch({ type: 'add-image', image })
     return image
-  }, [setImages])
+  }, [dispatch])
 
   const addResultToImage = (imageId: string, base64Result: string) => {
-    const images_ = images || []
-    const foundIndex = images_.findIndex((image) => image.id === imageId)
-    if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
-    const newImage = {
-      ...images_[foundIndex],
-      base64Result
-    }
-    images_[foundIndex] = newImage
-    setImages([...images_])
+    dispatch({ type: 'add-result-to-image', imageId, base64Result})
   }
 
   const addFolder = React.useCallback((name: string) => {
@@ -85,17 +111,8 @@ export default function useImageLibrary(): UseImageLibraryHook {
   }, [setFoldersState])
 
   const moveImageToFolder = React.useCallback((imageId: string, folderId: string) => {
-    setImages((images_ = []) => {
-      const foundIndex = images_.findIndex((image) => image.id === imageId)
-      if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
-      const newImage = {
-        ...images_[foundIndex],
-        folderId,
-      }
-      images_[foundIndex] = newImage
-      return [...images_]
-    })
-  }, [setImages])
+    dispatch({ type: 'move-image', imageId, folderId})
+  }, [dispatch])
   
   return {
     folders,

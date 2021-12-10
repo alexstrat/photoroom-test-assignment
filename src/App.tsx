@@ -52,7 +52,7 @@ function App() {
       const result = await response.json();
       const base64Result = BASE64_IMAGE_HEADER + result.result_b64
       const { id } = addImage(folderId, file.name, imageBase64, base64Result)
-        setActiveImageId(id)
+      setActiveImageId(id)
     }
     
     const activeImage = useMemo(() => {
