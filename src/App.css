@@ -1,5 +1,9 @@
 /* Add button */
 
+.App {
+  display: flex;
+  flex-direction: row;
+}
 .add-button-wrapper {
   display: flex;
   align-content: center;
