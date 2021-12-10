@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuid } from 'uuid';
+import { useLocalStorage } from 'react-use';
+
 import { LibraryFolder, LibraryImage } from '../types';
 
 type UseImageLibraryHook = {
@@ -9,7 +11,7 @@ type UseImageLibraryHook = {
   /**
    * Add an image to the library.
    */
-  addImage: (folderId: string, name: string, base64Original: string) => LibraryImage;
+  addImage: (folderId: string, name: string, base64Original: string, base64Result: string) => LibraryImage;
   /**
    * Add a result to an image.
    */
@@ -35,54 +37,55 @@ const UNTITLED_FOLDER_ID = 'untitled-folder';
  * @returns 
  */
 export default function useImageLibrary(): UseImageLibraryHook {
-  const [images, setImages] = useState<(LibraryImage & { folderId: string })[]>([])
-  const [foldersState, setFoldersState] = useState<Omit<LibraryFolder, 'images'>[]>([{
+  const [images, setImages] = useLocalStorage<(LibraryImage & { folderId: string })[]>('images', [])
+  const [foldersState, setFoldersState] = useLocalStorage<Omit<LibraryFolder, 'images'>[]>('folders', [{
     id: UNTITLED_FOLDER_ID,
     name: 'Untitled Folder',
   }])
 
   const folders = React.useMemo <LibraryFolder[]>(() => {
+    if (!images || !foldersState) return []
     return foldersState.map((f) => ({
       ...f,
       images: images.filter((i) => i.folderId === f.id)
     }))
   }, [images, foldersState]);
 
-  const addImage = React.useCallback((folderId: string, name: string, base64Original: string) => {
+  const addImage = React.useCallback((folderId: string, name: string, base64Original: string, base64Result: string) => {
     const image = {
       id: uuid(),
       name,
       base64Original,
+      base64Result,
       folderId,
     }
-    setImages((images) => [...images, image])
+    setImages((images) => [...images || [], image])
     return image
   }, [setImages])
 
-  const addResultToImage = React.useCallback((imageId: string, base64Result: string) => {
-    setImages((images_) => {
-      const foundIndex = images_.findIndex((image) => image.id === imageId)
-      if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
-      const newImage = {
-        ...images_[foundIndex],
-        base64Result
-      }
-      images_[foundIndex] = newImage
-      return [...images_]
-    })
-  }, [setImages])
+  const addResultToImage = (imageId: string, base64Result: string) => {
+    const images_ = images || []
+    const foundIndex = images_.findIndex((image) => image.id === imageId)
+    if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
+    const newImage = {
+      ...images_[foundIndex],
+      base64Result
+    }
+    images_[foundIndex] = newImage
+    setImages([...images_])
+  }
 
   const addFolder = React.useCallback((name: string) => {
     const folder = {
       id: uuid(),
       name,
     }
-    setFoldersState((folders) => [...folders, folder])
+    setFoldersState((folders) => [...folders || [], folder])
     return folder
   }, [setFoldersState])
 
   const moveImageToFolder = React.useCallback((imageId: string, folderId: string) => {
-    setImages((images_) => {
+    setImages((images_ = []) => {
       const foundIndex = images_.findIndex((image) => image.id === imageId)
       if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
       const newImage = {
@@ -96,7 +99,7 @@ export default function useImageLibrary(): UseImageLibraryHook {
   
   return {
     folders,
-    images,
+    images: images || [],
     addImage,
     addResultToImage,
     addFolder,

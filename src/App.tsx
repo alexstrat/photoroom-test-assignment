@@ -10,7 +10,7 @@ import NewFolderModal from './components/NewFolderModal';
 import MoveImageModal from './components/MoveImageModal';
 
 function App() {
-  const { folders, images, addImage, addResultToImage, addFolder, moveImageToFolder } = useImageLibrary()
+  const { folders, images, addImage, addFolder, moveImageToFolder } = useImageLibrary()
 
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
   const [movingImageId, setMovingImageId] = useState<string | null>(null)
@@ -18,47 +18,41 @@ function App() {
   const [newFolderModalIsOpen, setNewFolderModalIsOpen] = React.useState(false);
   const [moveImageModalIsOpen, setMoveImageModalIsOpen] = React.useState(false);
 
-  let uploadImageToServer = (folderId: string, file: File) => {
-    loadImage(
+  let uploadImageToServer = async (folderId: string, file: File) => {
+    const imageData: LoadImageResult = await loadImage(
       file,
       {
         maxWidth: 400,
         maxHeight: 400,
         canvas: true
       })
-      .then(async (imageData: LoadImageResult) => {
-        let image = imageData.image as HTMLCanvasElement
-        
-        let imageBase64 = image.toDataURL("image/png")
-        const { id } = addImage(folderId, file.name, imageBase64)
-        
-        let imageBase64Data = imageBase64.replace(BASE64_IMAGE_HEADER, "")
-        let data = {
-          image_file_b64: imageBase64Data,
-        }
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'x-api-key': API_KEY
-          },
-          body: JSON.stringify(data)
-        });
-
-        if (response.status >= 400 && response.status < 600) {
-          throw new Error("Bad response from server");
-        }
-
-        const result = await response.json();
-        const base64Result = BASE64_IMAGE_HEADER + result.result_b64
-        addResultToImage(id, base64Result)
-        setActiveImageId(id)
-      })
+    
+      let image = imageData.image as HTMLCanvasElement
       
-      .catch(error => {
-        console.error(error)
-      })
+      let imageBase64 = image.toDataURL("image/png")
+      
+      let imageBase64Data = imageBase64.replace(BASE64_IMAGE_HEADER, "")
+      let data = {
+        image_file_b64: imageBase64Data,
+      }
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (response.status >= 400 && response.status < 600) {
+        throw new Error("Bad response from server");
+      }
+
+      const result = await response.json();
+      const base64Result = BASE64_IMAGE_HEADER + result.result_b64
+      const { id } = addImage(folderId, file.name, imageBase64, base64Result)
+        setActiveImageId(id)
     }
     
     const activeImage = useMemo(() => {
