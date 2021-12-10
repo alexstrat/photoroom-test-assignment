@@ -7,11 +7,16 @@ import useImageLibrary from './hooks/useImageLibrary';
 import LibrarySideBar from './components/LibrarySideBar';
 import ImagePreview from './components/ImagePreview';
 import NewFolderModal from './components/NewFolderModal';
+import MoveImageModal from './components/MoveImageModal';
 
 function App() {
-  const { folders, images, addImage, addResultToImage, addFolder } = useImageLibrary()
+  const { folders, images, addImage, addResultToImage, addFolder, moveImageToFolder } = useImageLibrary()
+
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
+  const [movingImageId, setMovingImageId] = useState<string | null>(null)
+
   const [newFolderModalIsOpen, setNewFolderModalIsOpen] = React.useState(false);
+  const [moveImageModalIsOpen, setMoveImageModalIsOpen] = React.useState(false);
 
   let uploadImageToServer = (folderId: string, file: File) => {
     loadImage(
@@ -59,6 +64,9 @@ function App() {
     const activeImage = useMemo(() => {
       return images.find((i) => i.id === activeImageId)
     }, [activeImageId, images]);
+    const movingImage = useMemo(() => {
+      return images.find((i) => i.id === movingImageId)
+    }, [movingImageId, images]);
 
     return (
       <div className="App">
@@ -67,6 +75,16 @@ function App() {
           onRequestClose={() => setNewFolderModalIsOpen(false)}
           onSubmit={addFolder}
         />
+        <MoveImageModal
+          imageName={movingImage?.name || ''}
+          folders={folders}
+          isOpen={moveImageModalIsOpen}
+          onRequestClose={() => setMoveImageModalIsOpen(false)}
+          onSubmit={(folderId) => {
+            if (!movingImageId) return
+            moveImageToFolder(movingImageId, folderId)
+          }}
+        />
         <div>
           <LibrarySideBar
             folders={folders}
@@ -74,6 +92,10 @@ function App() {
             onSelectImage={setActiveImageId}
             onClickAddFolder={() => setNewFolderModalIsOpen(true)}
             onAddImageToFolder={uploadImageToServer}
+            onClickMove={(id) => {
+              setMovingImageId(id)
+              setMoveImageModalIsOpen(true)
+            }}
           />
         </div>
         {

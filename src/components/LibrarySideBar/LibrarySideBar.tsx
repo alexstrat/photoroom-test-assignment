@@ -6,6 +6,7 @@ type LibrarySideBarProps = {
   activeImageId?: string | null,
   onSelectImage?: (imageId: string) => void
   onClickAddFolder?: () => void
+  onClickMove?: (imageId: string) => void
   onAddImageToFolder?: (folderId: string, file: File) => void;
 }
 
@@ -14,6 +15,7 @@ const LibrarySideBar = ({
   activeImageId,
   onSelectImage,
   onClickAddFolder,
+  onClickMove,
   onAddImageToFolder
 }: LibrarySideBarProps) => {
   return (
@@ -28,7 +30,9 @@ const LibrarySideBar = ({
               <li
                 key={image.id}
                 onClick={() => onSelectImage?.(image.id)}
-              >{image.name} {image.id === activeImageId ? '(selected)': ''}</li>
+              >{image.name} {image.id === activeImageId ? '(selected)': ''}
+                <button onClick={() => onClickMove?.(image.id)}>Move</button>
+              </li>
             ))
           }
           </ul>

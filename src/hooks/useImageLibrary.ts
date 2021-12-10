@@ -20,6 +20,11 @@ type UseImageLibraryHook = {
    * Create a new folder.
    */
   addFolder: (folderName: string) => Omit<LibraryFolder, 'images'>
+
+  /**
+   * Will move an image to a folder. captainobvious
+   */
+  moveImageToFolder: (imageId: string, folderId: string) => void
 }
 
 const UNTITLED_FOLDER_ID = 'untitled-folder';
@@ -75,6 +80,19 @@ export default function useImageLibrary(): UseImageLibraryHook {
     setFoldersState((folders) => [...folders, folder])
     return folder
   }, [setFoldersState])
+
+  const moveImageToFolder = React.useCallback((imageId: string, folderId: string) => {
+    setImages((images_) => {
+      const foundIndex = images_.findIndex((image) => image.id === imageId)
+      if (foundIndex === -1) throw new Error(`No image with id ${imageId}`)
+      const newImage = {
+        ...images_[foundIndex],
+        folderId,
+      }
+      images_[foundIndex] = newImage
+      return [...images_]
+    })
+  }, [setImages])
   
   return {
     folders,
@@ -82,6 +100,7 @@ export default function useImageLibrary(): UseImageLibraryHook {
     addImage,
     addResultToImage,
     addFolder,
+    moveImageToFolder,
   }
 
 }
