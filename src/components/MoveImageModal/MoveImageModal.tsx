@@ -49,7 +49,7 @@ const MoveImageModal = ({
       }}>
         <select value={folderId} onChange={(e) => setFolderId(e.target.value)}>
           {
-              folders.map((folder) => <option value={folder.id}>{folder.name}</option>)
+              folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)
           }
         </select>
         <button type="submit" disabled={!folderId}>Move</button>
